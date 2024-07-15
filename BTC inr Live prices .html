@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meter BTCINR Bid and Ask Prices</title>
+    <!-- Include Odometer.js and Theme CSS -->
+    <link rel="stylesheet" href="http://github.hubspot.com/odometer/themes/odometer-theme-car.css" />
+    <script src="http://github.hubspot.com/odometer/odometer.js"></script>
+    
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh; /* Full viewport height */
+            background-color: #000000;
+            margin: 0;
+        }
+        #price-container {
+            text-align: center;
+            background: rgb(0, 0, 0);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            position: relative;
+            width: 80vw; /* 80% of viewport width */
+            max-width: 600px; /* Maximum width */
+        }
+        #timestamp {
+            font-size: 0.8em; /* Increase font size for timestamp */
+            color: #a1a0a0;
+            position: absolute;
+            top: 10px;
+            right: 10px;
+        }
+        .odometer {
+            font-size: 3em; /* Increase font size */
+            display: inline-block; /* Keep inline for odometer */
+            color: #E0B00C; /* Set the color for the odometer */
+        }
+        .label {
+            font-size: 2em; /* Increase font size */
+            color: #E0B00C; /* Color for the label */
+        }
+    </style>
+</head>
+<body>
+    <div id="timestamp">Fetching...</div>
+    <div id="price-container">
+        <!-- Odometer elements with labels -->
+        <div>
+            <span class="label">Bid (Selling): </span><span class="odometer" id="odometer-bid">0</span>
+        </div>
+        <div>
+            <span class="label">Ask (Buying): </span><span class="odometer" id="odometer-ask">0</span>
+        </div>
+    </div>
+    <script>
+        // Set Odometer options
+        window.odometerOptions = {
+            auto: false, // Don't automatically initialize everything with class 'odometer'
+            selector: '.odometer', // Change the selector used to automatically find things to be animated
+            format: '(dd,dd,ddd).d', // Change how digit groups are formatted, and how many digits are shown after the decimal point
+            duration: 700, // Change how long the JavaScript expects the CSS animation to take
+            theme: 'car', // Specify the theme
+            animation: 'count' // Count is a simpler animation method
+        };
+
+        async function fetchPrices() {
+            const url = "https://api.coindcx.com/exchange/ticker";
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+                const btcinrData = data.find(entry => entry.market === 'BTCINR');
+                if (btcinrData) {
+                    const bidPrice = parseFloat(btcinrData.bid);
+                    const askPrice = parseFloat(btcinrData.ask);
+                    const formattedBidPrice = bidPrice.toLocaleString('en-IN', {
+                        maximumFractionDigits: 0,
+                    });
+                    const formattedAskPrice = askPrice.toLocaleString('en-IN', {
+                        maximumFractionDigits: 0,
+                    });
+
+                    // Update Odometer with new values
+                    const odometerBid = document.getElementById('odometer-bid');
+                    const odometerAsk = document.getElementById('odometer-ask');
+                    if (odometerBid) {
+                        odometerBid.innerHTML = formattedBidPrice;
+                    }
+                    if (odometerAsk) {
+                        odometerAsk.innerHTML = formattedAskPrice;
+                    }
+
+                    // Convert the Unix timestamp to a readable format
+                    const timestamp = new Date(btcinrData.timestamp * 1000);
+                    const formattedTimestamp = timestamp.toLocaleString('en-IN', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit'
+                    });
+                    document.getElementById('timestamp').innerText = `Last updated: ${formattedTimestamp}`;
+                } else {
+                    document.getElementById('odometer-bid').innerText = "BTCINR not found";
+                    document.getElementById('odometer-ask').innerText = "BTCINR not found";
+                }
+            } catch (error) {
+                document.getElementById('odometer-bid').innerText = `Error: ${error}`;
+                document.getElementById('odometer-ask').innerText = `Error: ${error}`;
+                document.getElementById('timestamp').innerText = "";
+            }
+        }
+
+        setInterval(fetchPrices, 2500); // Fetch data every 2.5 seconds
+        fetchPrices(); // Initial fetch immediately on page load
+    </script>
+</body>
+</html>
